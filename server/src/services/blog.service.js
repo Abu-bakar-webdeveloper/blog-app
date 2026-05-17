@@ -1,5 +1,6 @@
 import prisma from '../models/index.js';
 import { deleteImage, extractPublicId } from './image.service.js';
+import { getCache, setCache } from '../utils/cache.js';
 
 // Generate slug from title
 const generateSlug = (title) => {
@@ -12,7 +13,7 @@ const generateSlug = (title) => {
 // CREATE - Create blog with Cloudinary URL
 export const createBlog = async (data, userId, imageUrl = null) => {
   const slug = generateSlug(data.title);
-  
+
   // Check if slug exists
   const existingBlog = await prisma.blog.findUnique({
     where: { slug }
@@ -51,8 +52,21 @@ export const createBlog = async (data, userId, imageUrl = null) => {
 
 // READ - Get blogs with filters and pagination
 export const getBlogs = async (filters = {}, page = 1, limit = 10) => {
+
+  // Create unique cache key
+  const cacheKey = `blogs:${JSON.stringify(filters)}:${page}:${limit}`;
+
+  // Check Redis first
+  const cachedBlogs = await getCache(cacheKey);
+
+  if (cachedBlogs) {
+    console.log("Serving blogs from Redis");
+
+    return cachedBlogs;
+  }
+
   const skip = (page - 1) * limit;
-  
+
   // Build where clause
   const where = {
     isPublished: true, // Only show published blogs to non-admins
@@ -132,7 +146,7 @@ export const getBlogs = async (filters = {}, page = 1, limit = 10) => {
     });
   }
 
-  return {
+  const result = {
     blogs,
     pagination: {
       page: parseInt(page),
@@ -144,12 +158,17 @@ export const getBlogs = async (filters = {}, page = 1, limit = 10) => {
     },
     filters
   };
+
+  // Store for 60 sec
+  await setCache(cacheKey, result, 60);
+
+  return result;
 };
 
 // READ - Get single blog by ID or slug
 export const getBlogById = async (idOrSlug) => {
   const isCuid = idOrSlug.length === 25;
-  
+
   const blog = await prisma.blog.findUnique({
     where: isCuid ? { id: idOrSlug } : { slug: idOrSlug },
     include: {
@@ -201,7 +220,7 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
   let slug;
   if (data.title) {
     slug = generateSlug(data.title);
-    
+
     // Check if slug exists (excluding current blog)
     const existingBlog = await prisma.blog.findFirst({
       where: {
@@ -217,7 +236,7 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
 
   const updateData = { ...data };
   if (slug) updateData.slug = slug;
-  
+
   if (data.isPublished && !data.publishedAt) {
     updateData.publishedAt = new Date();
   }
@@ -229,7 +248,7 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
       where: { id },
       select: { image: true }
     });
-    
+
     // Delete old image if exists and is different
     if (currentBlog?.image && currentBlog.image !== newImageUrl) {
       const publicId = extractPublicId(currentBlog.image);
@@ -237,7 +256,7 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
         await deleteImage(publicId);
       }
     }
-    
+
     // Set new image URL (or null if removing)
     updateData.image = newImageUrl;
   }
