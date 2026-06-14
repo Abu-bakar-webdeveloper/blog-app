@@ -1,0 +1,17 @@
+$kind: http-request
+name: Verify Upload
+description: 'Verify the signature of an uploaded Cloudinary image for security.'
+method: POST
+url: '{{baseUrl}}/api/upload/verify'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "public_id": "blog_app/sample",
+      "version": "1234567890",
+      "signature": "abc123def456"
+    }

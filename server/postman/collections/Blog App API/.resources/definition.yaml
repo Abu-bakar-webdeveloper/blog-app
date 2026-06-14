@@ -1,0 +1,15 @@
+$kind: collection
+name: Blog App API
+description: 'Complete API collection for the Blog App backend. Contains all endpoints for Auth, Blogs, Users, Reports, and Uploads.'
+variables:
+  - key: baseUrl
+    value: 'http://localhost:3000'
+    type: default
+  - key: authToken
+    value: ''
+    type: default
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{authToken}}'

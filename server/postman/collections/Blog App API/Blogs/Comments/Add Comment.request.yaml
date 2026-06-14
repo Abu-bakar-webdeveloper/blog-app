@@ -1,0 +1,14 @@
+$kind: http-request
+name: Add Comment
+method: POST
+url: '{{baseUrl}}/api/blogs/:blogId/comments'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content": "This is a great blog post!"
+    }

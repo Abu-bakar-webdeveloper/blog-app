@@ -1,0 +1,17 @@
+$kind: http-request
+name: Generate Upload Signature
+description: 'Generate a Cloudinary upload signature for client-side uploads. Purpose: blog, avatar, featured, or custom.'
+method: POST
+url: '{{baseUrl}}/api/upload/signature'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "purpose": "blog",
+      "folder": "blog_app/images",
+      "tags": "upload,blog"
+    }

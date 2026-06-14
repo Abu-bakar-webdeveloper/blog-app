@@ -1,0 +1,5 @@
+$kind: http-request
+name: Toggle Like
+method: POST
+url: '{{baseUrl}}/api/blogs/:blogId/likes'
+order: 2000

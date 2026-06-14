@@ -1,0 +1,10 @@
+$kind: http-request
+name: Get Blog
+method: GET
+url: '{{baseUrl}}/api/blogs/:id'
+order: 2000
+auth:
+  type: noauth
+pathVariables:
+  - key: id
+    value: blog_id_here

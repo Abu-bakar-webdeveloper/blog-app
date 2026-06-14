@@ -1,0 +1,7 @@
+$kind: http-request
+name: 'Get User Profile (Public)'
+method: GET
+url: '{{baseUrl}}/api/users/:userId/profile'
+order: 1000
+auth:
+  type: noauth

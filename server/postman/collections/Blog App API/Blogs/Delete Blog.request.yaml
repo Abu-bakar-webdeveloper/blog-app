@@ -1,0 +1,6 @@
+$kind: http-request
+name: Delete Blog
+description: 'Admin only. Delete a blog post.'
+method: DELETE
+url: '{{baseUrl}}/api/blogs/:id'
+order: 5000

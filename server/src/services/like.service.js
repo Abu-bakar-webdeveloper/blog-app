@@ -1,10 +1,22 @@
 import prisma from '../models/index.js';
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCache,
+  setCache,
+  invalidateBlogLikesCount,
+  invalidateBlogCaches,
+  invalidateBlogListCaches,
+  invalidateBlogStats,
+  invalidateUserProfile,
+} from '../utils/cache.js';
 
 // Like/Unlike a blog
 export const toggleLike = async (blogId, userId) => {
   // Check if blog exists and is published
   const blog = await prisma.blog.findUnique({
-    where: { id: blogId, isPublished: true }
+    where: { id: blogId, isPublished: true },
+    select: { id: true, slug: true, authorId: true },
   });
 
   if (!blog) {
@@ -22,7 +34,6 @@ export const toggleLike = async (blogId, userId) => {
   });
 
   if (existingLike) {
-    // Unlike
     await prisma.like.delete({
       where: {
         blogId_userId: {
@@ -31,17 +42,34 @@ export const toggleLike = async (blogId, userId) => {
         }
       }
     });
+
+    await Promise.all([
+      invalidateBlogLikesCount(blogId),
+      invalidateBlogCaches(blog),
+      invalidateBlogListCaches(),
+      invalidateBlogStats(),
+      invalidateUserProfile(userId),
+    ]);
+
     return { liked: false };
-  } else {
-    // Like
-    await prisma.like.create({
-      data: {
-        blogId,
-        userId
-      }
-    });
-    return { liked: true };
   }
+
+  await prisma.like.create({
+    data: {
+      blogId,
+      userId
+    }
+  });
+
+  await Promise.all([
+    invalidateBlogLikesCount(blogId),
+    invalidateBlogCaches(blog),
+    invalidateBlogListCaches(),
+    invalidateBlogStats(),
+    invalidateUserProfile(userId),
+  ]);
+
+  return { liked: true };
 };
 
 // Check if user liked a blog
@@ -60,7 +88,18 @@ export const checkLike = async (blogId, userId) => {
 
 // Get likes count for a blog
 export const getLikesCount = async (blogId) => {
-  return await prisma.like.count({
+  const cacheKey = CACHE_KEYS.blogLikesCount(blogId);
+  const cachedCount = await getCache(cacheKey);
+
+  if (cachedCount !== null) {
+    return cachedCount;
+  }
+
+  const count = await prisma.like.count({
     where: { blogId }
   });
+
+  await setCache(cacheKey, count, CACHE_TTL.SHORT);
+
+  return count;
 };

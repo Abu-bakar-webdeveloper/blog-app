@@ -1,0 +1,22 @@
+$kind: http-request
+name: Create Blog
+description: 'Admin only. Create a new blog post.'
+method: POST
+url: '{{baseUrl}}/api/blogs'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "My First Blog Post",
+      "content": "This is the full content of the blog post.",
+      "excerpt": "A short summary",
+      "type": "GENERAL",
+      "tags": ["javascript", "nodejs"],
+      "isPublished": "true",
+      "isFeatured": "false",
+      "imageUrl": "https://res.cloudinary.com/example/image/upload/v1/blog_app/sample.jpg"
+    }

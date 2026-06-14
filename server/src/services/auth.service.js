@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/index.js';
 import prisma from '../models/index.js';
+import { invalidateUserProfile } from '../utils/cache.js';
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -110,7 +111,7 @@ export const updateProfile = async (userId, data, newAvatarUrl = null) => {
     updateData.avatar = newAvatarUrl;
   }
 
-  return await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: userId },
     data: updateData,
     select: {
@@ -125,4 +126,8 @@ export const updateProfile = async (userId, data, newAvatarUrl = null) => {
       updatedAt: true,
     },
   });
+
+  await invalidateUserProfile(userId);
+
+  return user;
 };

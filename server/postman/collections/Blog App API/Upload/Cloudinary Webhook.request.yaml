@@ -1,0 +1,24 @@
+$kind: http-request
+name: Cloudinary Webhook
+description: 'Called by Cloudinary to notify of upload events. Requires x-cld-signature and x-cld-timestamp headers.'
+method: POST
+url: '{{baseUrl}}/api/upload/webhook'
+order: 2000
+auth:
+  type: noauth
+headers:
+  - key: x-cld-signature
+    value: '{{cloudinarySignature}}'
+  - key: x-cld-timestamp
+    value: '{{cloudinaryTimestamp}}'
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "notification_type": "upload",
+      "public_id": "blog_app/sample",
+      "secure_url": "https://res.cloudinary.com/example/image/upload/v1/blog_app/sample.jpg",
+      "context": {"user_id": "user_123"}
+    }

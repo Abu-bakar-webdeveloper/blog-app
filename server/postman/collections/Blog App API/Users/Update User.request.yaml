@@ -1,0 +1,18 @@
+$kind: http-request
+name: Update User
+description: 'Admin only. Update user details.'
+method: PUT
+url: '{{baseUrl}}/api/users/:id'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Updated Name",
+      "bio": "Updated bio",
+      "role": "USER",
+      "isActive": true
+    }

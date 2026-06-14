@@ -1,0 +1,22 @@
+$kind: http-request
+name: Update Blog
+description: 'Admin only. Update an existing blog post.'
+method: PUT
+url: '{{baseUrl}}/api/blogs/:id'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated Blog Title",
+      "content": "Updated content",
+      "excerpt": "Updated excerpt",
+      "type": "GENERAL",
+      "tags": ["javascript", "updated"],
+      "isPublished": "true",
+      "isFeatured": "true",
+      "imageUrl": "https://res.cloudinary.com/example/image/upload/v1/blog_app/updated.jpg"
+    }

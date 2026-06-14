@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Likes Count
+method: GET
+url: '{{baseUrl}}/api/blogs/:blogId/likes/count'
+order: 1000
+auth:
+  type: noauth

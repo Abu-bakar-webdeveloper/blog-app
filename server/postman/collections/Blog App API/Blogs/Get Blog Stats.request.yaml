@@ -1,0 +1,6 @@
+$kind: http-request
+name: Get Blog Stats
+description: 'Admin only. Get blog statistics dashboard.'
+method: GET
+url: '{{baseUrl}}/api/blogs/stats/dashboard'
+order: 6000

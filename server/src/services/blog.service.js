@@ -1,6 +1,12 @@
 import prisma from '../models/index.js';
 import { deleteImage, extractPublicId } from './image.service.js';
-import { getCache, setCache } from '../utils/cache.js';
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCache,
+  setCache,
+  invalidateBlogCaches,
+} from '../utils/cache.js';
 
 // Generate slug from title
 const generateSlug = (title) => {
@@ -23,7 +29,7 @@ export const createBlog = async (data, userId, imageUrl = null) => {
     throw new Error('Blog with this title already exists');
   }
 
-  return await prisma.blog.create({
+  const blog = await prisma.blog.create({
     data: {
       ...data,
       slug,
@@ -48,20 +54,19 @@ export const createBlog = async (data, userId, imageUrl = null) => {
       }
     }
   });
+
+  await invalidateBlogCaches(blog);
+
+  return blog;
 };
 
 // READ - Get blogs with filters and pagination
 export const getBlogs = async (filters = {}, page = 1, limit = 10) => {
 
-  // Create unique cache key
-  const cacheKey = `blogs:${JSON.stringify(filters)}:${page}:${limit}`;
-
-  // Check Redis first
+  const cacheKey = CACHE_KEYS.blogsList(filters, page, limit);
   const cachedBlogs = await getCache(cacheKey);
 
   if (cachedBlogs) {
-    console.log("Serving blogs from Redis");
-
     return cachedBlogs;
   }
 
@@ -159,14 +164,27 @@ export const getBlogs = async (filters = {}, page = 1, limit = 10) => {
     filters
   };
 
-  // Store for 60 sec
-  await setCache(cacheKey, result, 60);
+  await setCache(cacheKey, result, CACHE_TTL.SHORT);
 
   return result;
 };
 
 // READ - Get single blog by ID or slug
 export const getBlogById = async (idOrSlug) => {
+  const cacheKey = CACHE_KEYS.blogDetail(idOrSlug);
+  const cachedBlog = await getCache(cacheKey);
+
+  if (cachedBlog) {
+    prisma.blog
+      .update({
+        where: { id: cachedBlog.id },
+        data: { views: { increment: 1 } },
+      })
+      .catch(() => {});
+
+    return cachedBlog;
+  }
+
   const isCuid = idOrSlug.length === 25;
 
   const blog = await prisma.blog.findUnique({
@@ -205,11 +223,15 @@ export const getBlogById = async (idOrSlug) => {
   });
 
   if (blog) {
-    // Increment view count
     await prisma.blog.update({
       where: { id: blog.id },
-      data: { views: { increment: 1 } }
+      data: { views: { increment: 1 } },
     });
+
+    if (blog.isPublished) {
+      await setCache(CACHE_KEYS.blogDetail(blog.id), blog, CACHE_TTL.MEDIUM);
+      await setCache(CACHE_KEYS.blogDetail(blog.slug), blog, CACHE_TTL.MEDIUM);
+    }
   }
 
   return blog;
@@ -261,7 +283,7 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
     updateData.image = newImageUrl;
   }
 
-  return await prisma.blog.update({
+  const blog = await prisma.blog.update({
     where: { id },
     data: updateData,
     include: {
@@ -275,6 +297,10 @@ export const updateBlog = async (id, data, newImageUrl = null) => {
       }
     }
   });
+
+  await invalidateBlogCaches(blog);
+
+  return blog;
 };
 
 // DELETE - Delete blog and its image
@@ -300,13 +326,24 @@ export const deleteBlog = async (id) => {
     prisma.report.deleteMany({ where: { blogId: id } }),
   ]);
 
-  return await prisma.blog.delete({
-    where: { id }
+  const deletedBlog = await prisma.blog.delete({
+    where: { id },
   });
+
+  await invalidateBlogCaches(deletedBlog);
+
+  return deletedBlog;
 };
 
 // Get blog statistics
 export const getBlogStats = async () => {
+  const cacheKey = CACHE_KEYS.blogStats();
+  const cachedStats = await getCache(cacheKey);
+
+  if (cachedStats) {
+    return cachedStats;
+  }
+
   const [
     totalBlogs,
     publishedBlogs,
@@ -346,13 +383,17 @@ export const getBlogStats = async () => {
     })
   ]);
 
-  return {
+  const stats = {
     totalBlogs,
     publishedBlogs,
     totalViews: totalViews._sum.views || 0,
     totalLikes,
     totalComments,
     blogsByType,
-    recentBlogs
+    recentBlogs,
   };
+
+  await setCache(cacheKey, stats, CACHE_TTL.STATS);
+
+  return stats;
 };

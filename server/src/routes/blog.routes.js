@@ -27,6 +27,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', getBlogsController);
+router.get('/stats/dashboard', authenticate, authorize('ADMIN'), getBlogStatsController);
 router.get('/:id', getBlogController);
 router.get('/:blogId/comments', getBlogCommentsController);
 router.get('/:blogId/likes/count', getLikesCountController);
@@ -48,6 +49,5 @@ router.delete('/:blogId/comments/:commentId', deleteCommentController);
 router.post('/', authorize('ADMIN'), createBlogController);
 router.put('/:id', authorize('ADMIN'), updateBlogController);
 router.delete('/:id', authorize('ADMIN'), deleteBlogController);
-router.get('/stats/dashboard', authorize('ADMIN'), getBlogStatsController);
 
 export default router;

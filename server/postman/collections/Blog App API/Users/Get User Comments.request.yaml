@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get User Comments
+method: GET
+url: '{{baseUrl}}/api/users/:userId/comments'
+order: 6000
+queryParams:
+  - key: page
+    value: '1'
+    disabled: true
+  - key: limit
+    value: '10'
+    disabled: true

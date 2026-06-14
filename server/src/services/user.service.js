@@ -1,7 +1,22 @@
 import prisma from '../models/index.js';
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCache,
+  setCache,
+  invalidateUserProfile,
+  invalidateUsersList,
+} from '../utils/cache.js';
 
 // Get user profile by ID
 export const getUserProfile = async (userId) => {
+  const cacheKey = CACHE_KEYS.userProfile(userId);
+  const cachedProfile = await getCache(cacheKey);
+
+  if (cachedProfile) {
+    return cachedProfile;
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId, isActive: true },
     select: {
@@ -46,6 +61,8 @@ export const getUserProfile = async (userId) => {
   if (!user) {
     throw new Error('User not found');
   }
+
+  await setCache(cacheKey, user, CACHE_TTL.MEDIUM);
 
   return user;
 };
@@ -132,6 +149,13 @@ export const getUserComments = async (userId, page = 1, limit = 10) => {
 
 // Get all users (admin only)
 export const getAllUsers = async (page = 1, limit = 10) => {
+  const cacheKey = CACHE_KEYS.usersList(page, limit);
+  const cachedUsers = await getCache(cacheKey);
+
+  if (cachedUsers) {
+    return cachedUsers;
+  }
+
   const skip = (page - 1) * limit;
   
   const [users, total] = await Promise.all([
@@ -160,7 +184,7 @@ export const getAllUsers = async (page = 1, limit = 10) => {
     prisma.user.count()
   ]);
 
-  return {
+  const result = {
     users,
     pagination: {
       page: parseInt(page),
@@ -169,11 +193,15 @@ export const getAllUsers = async (page = 1, limit = 10) => {
       totalPages: Math.ceil(total / limit)
     }
   };
+
+  await setCache(cacheKey, result, CACHE_TTL.SHORT);
+
+  return result;
 };
 
 // Update user (admin only)
 export const updateUser = async (id, data) => {
-  return await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id },
     data,
     select: {
@@ -188,4 +216,11 @@ export const updateUser = async (id, data) => {
       updatedAt: true,
     },
   });
+
+  await Promise.all([
+    invalidateUserProfile(id),
+    invalidateUsersList(),
+  ]);
+
+  return user;
 };

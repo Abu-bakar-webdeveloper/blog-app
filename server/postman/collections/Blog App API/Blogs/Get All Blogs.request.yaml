@@ -1,0 +1,41 @@
+$kind: http-request
+name: Get All Blogs
+method: GET
+url: '{{baseUrl}}/api/blogs'
+order: 1000
+auth:
+  type: noauth
+queryParams:
+  - key: page
+    value: '1'
+    disabled: true
+  - key: limit
+    value: '10'
+    disabled: true
+  - key: type
+    value: GENERAL
+    disabled: true
+  - key: tags
+    value: 'javascript,nodejs'
+    disabled: true
+  - key: search
+    value: ''
+    disabled: true
+  - key: startDate
+    value: ''
+    disabled: true
+  - key: endDate
+    value: ''
+    disabled: true
+  - key: featured
+    value: 'true'
+    disabled: true
+  - key: sortBy
+    value: createdAt
+    disabled: true
+  - key: sortOrder
+    value: desc
+    disabled: true
+  - key: includeUnpublished
+    value: 'true'
+    disabled: true

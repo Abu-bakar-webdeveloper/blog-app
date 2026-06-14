@@ -1,0 +1,15 @@
+$kind: http-request
+name: Report Blog
+method: POST
+url: '{{baseUrl}}/api/blogs/:blogId/reports'
+order: 1000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": "SPAM",
+      "description": "This post contains spam content"
+    }

@@ -1,0 +1,12 @@
+$kind: http-request
+name: Get My Liked Blogs
+method: GET
+url: '{{baseUrl}}/api/users/likes'
+order: 3000
+queryParams:
+  - key: page
+    value: '1'
+    disabled: true
+  - key: limit
+    value: '10'
+    disabled: true

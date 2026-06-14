@@ -1,0 +1,5 @@
+$kind: http-request
+name: Check Like
+method: GET
+url: '{{baseUrl}}/api/blogs/:blogId/likes/check'
+order: 3000

@@ -1,4 +1,12 @@
 import prisma from '../models/index.js';
+import {
+  CACHE_KEYS,
+  CACHE_TTL,
+  getCache,
+  setCache,
+  invalidateReportStats,
+  invalidateReportsList,
+} from '../utils/cache.js';
 
 // Report a blog (user)
 export const createReport = async (blogId, reason, description, userId) => {
@@ -24,7 +32,7 @@ export const createReport = async (blogId, reason, description, userId) => {
     throw new Error('You have already reported this blog');
   }
 
-  return await prisma.report.create({
+  const report = await prisma.report.create({
     data: {
       reason,
       description,
@@ -48,10 +56,24 @@ export const createReport = async (blogId, reason, description, userId) => {
       }
     }
   });
+
+  await Promise.all([
+    invalidateReportStats(),
+    invalidateReportsList(),
+  ]);
+
+  return report;
 };
 
 // Get all reports (admin only)
 export const getAllReports = async (page = 1, limit = 10, status = null) => {
+  const cacheKey = CACHE_KEYS.reportsList(page, limit, status);
+  const cachedReports = await getCache(cacheKey);
+
+  if (cachedReports) {
+    return cachedReports;
+  }
+
   const skip = (page - 1) * limit;
   
   const where = {};
@@ -86,7 +108,7 @@ export const getAllReports = async (page = 1, limit = 10, status = null) => {
     prisma.report.count({ where })
   ]);
 
-  return {
+  const result = {
     reports,
     pagination: {
       page: parseInt(page),
@@ -95,11 +117,15 @@ export const getAllReports = async (page = 1, limit = 10, status = null) => {
       totalPages: Math.ceil(total / limit)
     }
   };
+
+  await setCache(cacheKey, result, CACHE_TTL.SHORT);
+
+  return result;
 };
 
 // Update report status (admin only)
 export const updateReportStatus = async (reportId, status) => {
-  return await prisma.report.update({
+  const report = await prisma.report.update({
     where: { id: reportId },
     data: { status },
     include: {
@@ -111,10 +137,24 @@ export const updateReportStatus = async (reportId, status) => {
       }
     }
   });
+
+  await Promise.all([
+    invalidateReportStats(),
+    invalidateReportsList(),
+  ]);
+
+  return report;
 };
 
 // Get report statistics
 export const getReportStats = async () => {
+  const cacheKey = CACHE_KEYS.reportStats();
+  const cachedStats = await getCache(cacheKey);
+
+  if (cachedStats) {
+    return cachedStats;
+  }
+
   const [
     totalReports,
     pendingReports,
@@ -134,12 +174,16 @@ export const getReportStats = async () => {
     })
   ]);
 
-  return {
+  const stats = {
     totalReports,
     pendingReports,
     reviewedReports,
     resolvedReports,
     dismissedReports,
-    reportsByReason
+    reportsByReason,
   };
+
+  await setCache(cacheKey, stats, CACHE_TTL.STATS);
+
+  return stats;
 };
