@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: node_app
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: redis_cache
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
