@@ -79,7 +79,7 @@ export const login = async (email, password) => {
       email: user.email,
       username: user.username,
       name: user.name,
-      bio: user.bio,
+      // bio: user.bio,
       // avatar: user.avatar,
       role: user.role,
     },
